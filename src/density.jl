@@ -17,6 +17,7 @@ of the functions
 
 * `BAT.exec_capabilities`
 * `BAT.unsafe_density_logval!`
+* `BAT.unsafe_density_logvalgrad!`
 """
 abstract type AbstractDensity end
 export AbstractDensity
@@ -202,6 +203,72 @@ end
 # ToDo: Derive from exec_capabilities(density_logval, density, ...)
 exec_capabilities(::typeof(unsafe_density_logval!), r::AbstractArray{<:Real}, density::AbstractDensity, args...) =
     ExecCapabilities(1, false, 1, true) # Change when default implementation of density_logval! for AbstractDensity becomes multithreaded.
+
+
+doc"""
+    density_logvalgrad!(
+        gradient::AbstractVector{<:Real},
+        density::AbstractDensity,
+        params::AbstractVector{<:Real},
+        exec_context::ExecContext = ExecContext()
+    )
+
+Similar to `density_logval`, but also returns gradient of the logarithmic
+density value in `gradient`.
+
+Do not implement `density_logvalgrad` directly for subtypes of
+`AbstractDensity`, implement `BAT.unsafe_density_logvalgrad` instead.
+
+See `ExecContext` for thread-safety requirements.
+"""
+function density_logvalgrad(
+    gradient::AbstractVector{<:Real},
+    density::AbstractDensity,
+    params::AbstractVector{<:Real},
+    exec_context::ExecContext = ExecContext()
+)
+    size(gradient, 1) != nparams(density) && throw(ArgumentError("Invalid length of gradient vector"))
+    size(params, 1) != nparams(density) && throw(ArgumentError("Invalid length of parameter vector"))
+    unsafe_density_logvalgrad(density, params, exec_context)
+end
+export density_logvalgrad
+
+# Assume that density_logvalgrad isn't always thread-safe, but usually remote-safe:
+exec_capabilities(::typeof(density_logvalgrad), gradient::AbstractVector{<:Real}, density::AbstractDensity, params::AbstractVector{<:Real}) =
+    exec_capabilities(unsafe_density_logvalgrad, density, params)
+
+
+doc"""
+    BAT.unsafe_density_logvalgrad(
+        gradient::AbstractVector{<:Real},
+        density::AbstractDensity,
+        params::AbstractVector{<:Real},
+        exec_context::ExecContext = ExecContext()
+    )
+
+Unsafe variant of `density_logvalgrad`, implementations may rely on
+
+* `size(gradient, 1) == nparams(density)`
+* `size(params, 1) == nparams(density)`
+
+The caller *must* ensure that these conditions are met!
+
+The default implementation uses auto-differentiation via ForwardDiff.
+"""
+function unsafe_density_logvalgrad(
+    gradient::AbstractVector{<:Real},
+    density::AbstractDensity,
+    params::AbstractVector{<:Real},
+    exec_context::ExecContext = ExecContext()
+)
+    r = DiffResults.DiffResult(zero(eltype(gradient)), gradient) # TODO: Avoid memory allocation
+    ForwardDiff.gradient!(r, p -> unsafe_density_logval(density, p, exec_context), params)
+    r.value
+end
+
+# Assume that density_logvalgrad isn't always thread-safe, but usually remote-safe:
+exec_capabilities(::typeof(unsafe_density_logvalgrad), gradient::AbstractVector{<:Real}, density::AbstractDensity, args...) =
+    ExecCapabilities(1, false, 1, true)
 
 
 

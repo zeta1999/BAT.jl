@@ -22,6 +22,8 @@ using PDMats
 using RecipesBase
 using StatsBase
 
+import DiffResults
+import ForwardDiff
 import RandomNumbers
 
 
