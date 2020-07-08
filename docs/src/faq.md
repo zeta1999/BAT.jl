@@ -1,3 +1,0 @@
-# Frequently Asked Questions
-
-... to be written ...
