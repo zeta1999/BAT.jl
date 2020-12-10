@@ -244,6 +244,16 @@ function apply_dist_trafo(trg_d::StandardMvNormal, src_d::StandardMvUniform, src
 end
 
 
+function apply_dist_trafo(trg_d::StandardMvNormal, src_d::AbstractMvNormal, src_v::AbstractVector{<:Real}, prev_ladj::Real)
+    @assert false
+end
+
+function apply_dist_trafo(trg_d::AbstractMvNormal, src_d::StandardMvNormal, src_v::AbstractVector{<:Real}, prev_ladj::Real)
+    @assert false
+end
+
+
+
 function apply_dist_trafo(trg_d::Distributions.Product, src_d::Distributions.Product, src_v::AbstractVector{<:Real}, prev_ladj::Real)
     rs = apply_dist_trafo.(trg_d.v, src_d.v, src_v, zero(Float32))
     trg_v = broadcast(r -> r.v, rs)
