@@ -7,7 +7,7 @@ using LinearAlgebra
 using ValueShapes, Distributions, ArraysOfArrays, ForwardDiff
 
 @testset "test_distribution_transform" begin
-    @testset "transform StandardMvNormal/MvNormal" begin
+    @testset "transform MvNormal" begin
         for src_d in (BAT.StandardMvNormal(2), BAT.StandardMvUniform(2))
             src_d = BAT.StandardMvUniform(2)
             trg_d = MvNormal([0.3, -2.9], [1.7 0.5; 0.5 2.3])
