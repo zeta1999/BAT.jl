@@ -217,6 +217,14 @@ Random.rand(rng::AbstractRNG, d::HierarchicalDistribution, dims::Tuple{}) = vars
 # ToDo/Decision: Use stripscalar on result or not?
 Random.rand(rng::AbstractRNG, d::HierarchicalDistribution) = stripscalar(rand(rng, d, ()))
 
+function Random.rand(rng::AbstractRNG, d::HierarchicalDistribution, dims::Dims)
+    ud = unshaped(d)
+    X_flat = Array{eltype(ud)}(undef, length(ud), dims...)
+    X = ArrayOfSimilarVectors(X_flat)
+    rand!.(Ref(rng), Ref(ud), X)
+    varshape(d).(X)
+end
+
 function Distributions._rand!(rng::AbstractRNG, ud::UnshapedHDist, x::AbstractVector{<:Real})
     x_primary, x_secondary = _hd_split(ud, x)
     rand!(rng, _hd_pridist(ud), x_primary)

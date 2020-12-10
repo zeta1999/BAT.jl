@@ -6,6 +6,7 @@ using Test
 using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
 
 @testset "hierarchial_distribution" begin
+#=
     primary_dist = NamedTupleDist(x = Normal(2))
     f = v -> NamedTupleDist(y = Normal(v.x, 3), z = MvNormal(1.3 0.5; 0.5 2.2))
     f(rand(primary_dist))
@@ -19,7 +20,7 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
     logpdf(ud, ux)
     logpdf(d, x)
     logpdf(d, sx)
-
+=#
 
     let
         primary_dist = NamedTupleDist(
@@ -47,18 +48,7 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         @test @inferred(logpdf(hd, stripscalar(varshape(hd)(ux)))) == logpdf(ud, ux)
 
         samples = bat_sample(hd, MCMCSampling(mcalg = MetropolisHastings(), trafo = NoDensityTransform(), nsteps = 10^5)).result
-        isapprox(cov(unshaped.(samples)), cov(ud), rtol = 0.1)
-    end
-
-    let
-        primary_dist = BAT.DistributionDensity(NamedTupleDist(foo = 2..4, bar = Normal(2.0, 1.0)))
-
-        f = v -> BAT.DistributionDensity(NamedTupleDist(baz = fill(Normal(v.bar, v.foo), 3)))
-
-        hd = HierarchicalDistribution(f, primary_dist)
-
-        hd_bounds = @inferred(BAT.var_bounds(hd))
-        @test @inferred(fill(1.5, totalndof(hd)) in hd_bounds) == false
+        @test isapprox(cov(unshaped.(samples)), cov(ud), rtol = 0.2)
     end
 
     let
@@ -69,7 +59,7 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
 
         cov_expected = [1.9^2 1.9^2; 1.9^2 1.9^2 + 1.2^2]
 
-        @test isapprox(cov(hd), cov_expected, rtol = 0.05)
-        @test isapprox(mean(nestedview(rand(sampler(hd), 10^5))), [2.3, 2.3], rtol = 0.05)
+        @test isapprox(cov(unshaped(hd)), cov_expected, rtol = 0.05)
+        @test isapprox(mean(unshaped.(rand(sampler(hd), 10^5))), [2.3, 2.3], rtol = 0.05)
     end
 end
