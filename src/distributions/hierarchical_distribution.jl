@@ -194,7 +194,16 @@ end
 
 function Distributions.logpdf(ud::UnshapedHDist, x::AbstractVector{<:Real})
     x_primary, x_secondary = _hd_split(ud, x)
-    logpdf(_hd_pridist(ud), x_primary) + logpdf(_hd_secdist(ud, x_primary), x_secondary)
+    logval1 = logpdf(_hd_pridist(ud), x_primary)
+    T = typeof(logval1)
+    R = promote_type(T, eltype(x))
+    # ToDo: Use insupport(_hd_pridist(ud), x_primary) in the future? insupport not yet available for NamedTupleDist.
+    if logval1 > convert(T, -Inf)
+        logval2 = logpdf(_hd_secdist(ud, x_primary), x_secondary)
+        convert(R, logval1 + logval2)
+    else
+        convert(R, logval1)
+    end
 end
 
 
