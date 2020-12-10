@@ -7,54 +7,62 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
 
 @testset "hierarchial_distribution" begin
     primary_dist = NamedTupleDist(x = Normal(2))
-    f = v -> NamedTupleDist(y = Normal(v.x, 3), z = Normal(4))
+    f = v -> NamedTupleDist(y = Normal(v.x, 3), z = MvNormal(1.3 0.5; 0.5 2.2))
     f(rand(primary_dist))
-    HierarchicalDistribution(f, primary_dist)
+    d = @inferred(HierarchicalDistribution(f, primary_dist))
 
-#=
+    ud = unshaped(d)
+    ux = @inferred rand(ud)
+    x = @inferred rand(d)
+    sx = @inferred rand(d, ())
+
+    logpdf(ud, ux)
+    logpdf(d, x)
+    logpdf(d, sx)
+
+
     let
-        parent_density = NamedTupleDist(
+        primary_density = NamedTupleDist(
             foo = Exponential(3.5),
             bar = Normal(2.0, 1.0)
         )
 
         f = v -> NamedTupleDist(baz = fill(Normal(v.bar, v.foo), 3))
 
-        @test typeof(@inferred HierarchicalDensity(f, parent_density)) <: HierarchicalDensity
+        @test @inferred HierarchicalDistribution(f, primary_density) isa HierarchicalDistribution
+        hd = HierarchicalDistribution(f, primary_density)
 
-        hd = HierarchicalDensity(f, parent_density)
+        @test @inferred(unshaped(hd)) isa BAT.UnshapedHDist
+        ud = unshaped(hd)
 
-        @test @inferred(sampler(hd)) == BAT.HierarchicalDensitySampler(hd)
-        @test @inferred(rand(sampler(hd))) isa AbstractVector{<:Real}
+        @test @inferred(rand(hd)) isa NamedTuple
+        @test @inferred(rand(hd), ()) isa ShapedAsNT
+        @test @inferred(rand(ud)) isa AbstractVector{<:Real}
         @test @inferred(varshape(hd)) == NamedTupleShape(foo = ScalarShape{Real}(), bar = ScalarShape{Real}(), baz = ArrayShape{Real}(3))
+        @test @inferred(varshape(ud)) == ArrayShape{Real}(5)
 
-        @test @inferred(BAT.eval_logval_unchecked(hd, [2.7, 4.3, 8.7, 8.7, 8.7])) ≈ logpdf(parent_density.foo, 2.7) + logpdf(parent_density.bar, 4.3) + 3 * logpdf(Normal(4.3, 2.7), 8.7)
-        @test @inferred(BAT.eval_logval_unchecked(hd, (foo = 2.7, bar = 4.3, baz = fill(8.7, 3)))) ≈ logpdf(parent_density.foo, 2.7) + logpdf(parent_density.bar, 4.3) + 3 * logpdf(Normal(4.3, 2.7), 8.7)
+        ux = [2.7, 4.3, 8.7, 8.7, 8.7]
+        @test @inferred(logpdf(ud, ux)) ≈ logpdf(primary_density.foo, 2.7) + logpdf(primary_density.bar, 4.3) + 3 * logpdf(Normal(4.3, 2.7), 8.7)
+        @test @inferred(logpdf(hd, varshape(hd)(ux))) == logpdf(ud, ux)
+        @test @inferred(logpdf(hd, stripscalar(varshape(hd)(ux)))) == logpdf(ud, ux)
 
-        @test @inferred(BAT.var_bounds(hd)) == BAT.HierarchicalDensityBounds(hd)
-
-        hd_bounds = @inferred(BAT.var_bounds(hd))
-        @test all(in.(nestedview(@inferred rand(sampler(hd), 10^3)), Ref(hd_bounds)))
-        @test @inferred(fill(-1.0, totalndof(hd)) in hd_bounds) == false
-
-        posterior = PosteriorDensity(LogDVal(0), hd)
-        samples = bat_sample(posterior, MCMCSampling(mcalg = MetropolisHastings(), trafo = NoDensityTransform(), nsteps = 10^5)).result
-        isapprox(cov(unshaped.(samples)), cov(hd), rtol = 0.05)
+        samples = bat_sample(hd, MCMCSampling(mcalg = MetropolisHastings(), trafo = NoDensityTransform(), nsteps = 10^5)).result
+        isapprox(cov(unshaped.(samples)), cov(uhd), rtol = 0.05)
     end
 
     let
-        parent_density = BAT.DistributionDensity(NamedTupleDist(foo = 2..4, bar = Normal(2.0, 1.0)))
+        primary_density = BAT.DistributionDensity(NamedTupleDist(foo = 2..4, bar = Normal(2.0, 1.0)))
 
         f = v -> BAT.DistributionDensity(NamedTupleDist(baz = fill(Normal(v.bar, v.foo), 3)))
 
-        hd = HierarchicalDensity(f, parent_density)
+        hd = HierarchicalDistribution(f, primary_density)
 
         hd_bounds = @inferred(BAT.var_bounds(hd))
         @test @inferred(fill(1.5, totalndof(hd)) in hd_bounds) == false
     end
 
     let
-        hd = HierarchicalDensity(
+        hd = HierarchicalDistribution(
             v -> NamedTupleDist(b = Normal(v.a, 1.2)),
             NamedTupleDist(a = Normal(2.3, 1.9))
         )
@@ -64,5 +72,4 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         @test isapprox(cov(hd), cov_expected, rtol = 0.05)
         @test isapprox(mean(nestedview(rand(sampler(hd), 10^5))), [2.3, 2.3], rtol = 0.05)
     end
-=#
 end

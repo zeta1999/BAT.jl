@@ -86,7 +86,7 @@ function HierarchicalDistribution(f::Function, primary_dist::ContinuousDistribut
     vs_primary = varshape(primary_dist)
     vf_primary = _variate_form(primary_dist)
     x_primary_us = rand(bat_determ_rng(), unshaped(primary_dist))
-    x_primary = stripscalar(vs_primary(x_primary))
+    x_primary = stripscalar(vs_primary(x_primary_us))
 
     secondary_dist = f(x_primary)
     vs_secondary = varshape(secondary_dist)
@@ -137,7 +137,7 @@ struct UnshapedHDist{
 end
 
 
-ValueShapes.unshaped(hd::HierarchicalDistribution) = UnshapedHDist(d)
+ValueShapes.unshaped(d::HierarchicalDistribution) = UnshapedHDist(d)
 
 Base.length(ud::UnshapedHDist) = length(ud.shaped)
 
@@ -149,7 +149,7 @@ _hd_pridist(d::HierarchicalDistribution) = d.pdist
 _hd_secdist(d::HierarchicalDistribution, x::Any) = d.f(stripscalar(x))
 
 _hd_pridist(ud::UnshapedHDist) = unshaped(_hd_pridist(ud.shaped))
-_hd_secdist(ud::UnshapedHDist, x::AbstractVector{<:Real}) = unshaped(_hd_secdist(ud.shaped, ud.vs(x)))
+_hd_secdist(ud::UnshapedHDist, x::AbstractVector{<:Real}) = unshaped(_hd_secdist(ud.shaped, varshape(ud.shaped.pdist)(x)))
 
 
 
@@ -192,7 +192,7 @@ function Distributions.logpdf(d::HierarchicalDistribution, x::Any)
     logpdf(unshaped(d), unshaped(x, d.vs))
 end
 
-Distributions.logpdf(ud::UnshapedHDist, x::AbstractVector{<:Real})
+function Distributions.logpdf(ud::UnshapedHDist, x::AbstractVector{<:Real})
     x_primary, x_secondary = _hd_split(ud, x)
     logpdf(_hd_pridist(ud), x_primary) + logpdf(_hd_secdist(ud, x_primary), x_secondary)
 end
