@@ -56,7 +56,7 @@ Transform `density` to another variate space defined/implied by `target`.
 Returns a NamedTuple: (result = x::AbstractDensity, ...)
 
 Result properties not listed here are algorithm-specific and are not part
-of the stable BAT API.
+of the stable public API.
 
 !!! note
 

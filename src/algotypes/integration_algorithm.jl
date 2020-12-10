@@ -21,7 +21,7 @@ Calculate the integral (evidence) of `target`.
 Returns a NamedTuple: (result = x::Measurement.Measurement, ...)
 
 Result properties not listed here are algorithm-specific and are not part
-of the stable BAT API.
+of the stable public API.
 
 Returns a NamedTuple of the shape
 
@@ -30,7 +30,7 @@ Returns a NamedTuple of the shape
 ```
 
 Result properties not listed here are algorithm-specific and are not part
-of the stable BAT API.
+of the stable public API.
 
 !!! note
 

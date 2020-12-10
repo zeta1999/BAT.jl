@@ -29,9 +29,9 @@ Constructors:
 
 ```julia
 RepetitionWeighting()
-
-RepetitionWeighting{T}()
 ```
+
+Additional constructors are not part of the stable public API.
 """
 struct RepetitionWeighting{T<:Real} <: AbstractMCMCWeightingScheme{T} end
 export RepetitionWeighting
@@ -50,9 +50,9 @@ Constructors:
 
 ```julia
 ARPWeighting()
-
-ARPWeighting{T}()
 ```
+
+Additional constructors are not part of the stable public API.
 """
 struct ARPWeighting{T<:AbstractFloat} <: AbstractMCMCWeightingScheme{T} end
 export ARPWeighting
